@@ -1,0 +1,128 @@
+import re
+
+def is_variable(x):
+    return isinstance(x, str) and x[0].isupper()
+
+def occurs_check(var, expr):
+    if var == expr:
+        return True
+    if isinstance(expr, tuple):
+        return any(occurs_check(var, e) for e in expr[1])
+    return False
+
+def substitute(expr, subst):
+    if isinstance(expr, str):
+        return subst.get(expr, expr)
+    if isinstance(expr, tuple):
+        pred, args = expr
+        return (pred, [substitute(a, subst) for a in args])
+    return expr
+
+def parse(expr):
+    m = re.match(r'(\w+)\((.*)\)', expr)
+    if not m:
+        return expr.strip()
+    pred = m.group(1)
+    args = [parse(a.strip()) for a in split_args(m.group(2))]
+    return (pred, args)
+
+def split_args(s):
+    args, depth, current = [], 0, ''
+    for c in s:
+        if c == ',' and depth == 0:
+            args.append(current.strip())
+            current = ''
+        else:
+            if c == '(':
+                depth += 1
+            elif c == ')':
+                depth -= 1
+            current += c
+    if current:
+        args.append(current.strip())
+    return args
+
+def to_str(expr):
+    if isinstance(expr, str):
+        return expr
+    if isinstance(expr, tuple):
+        return f"{expr[0]}({', '.join(to_str(a) for a in expr[1])})"
+    return str(expr)
+
+def unify(x, y):
+    subst = {}
+    step = 0
+    print(f"Question: S = {{ {to_str(x)}; {to_str(y)} }}\n")
+
+    stack = [(x, y)]
+    while stack:
+        a, b = stack.pop()
+        current_binding_info = None
+
+        if a == b:
+            pass
+        elif is_variable(a):
+            if occurs_check(a, b):
+                print(f"Occurs check failed for {a} in {to_str(b)}")
+                return None
+            b = substitute(b, subst)
+            subst[a] = b
+            current_binding_info = (a, b)
+
+        elif is_variable(b):
+            if occurs_check(b, a):
+                print(f"Occurs check failed for {b} in {to_str(a)}")
+                return None
+            a = substitute(a, subst)
+            subst[b] = a
+            current_binding_info = (b, a)
+
+        elif isinstance(a, tuple) and isinstance(b, tuple):
+            if a[0] != b[0] or len(a[1]) != len(b[1]):
+                print("FAILURE (predicate mismatch or arg length mismatch)")
+                return None
+            for i in range(len(a[1]) - 1, -1, -1):
+                stack.append((a[1][i], b[1][i]))
+
+        else:
+            print("FAILURE (constants mismatch)")
+            return None
+
+        # print step
+        x_after = substitute(x, subst)
+        y_after = substitute(y, subst)
+
+        if current_binding_info:
+            step += 1
+            var, val = current_binding_info
+            print(f"Step {step}: subst θ = {{ {var}/{to_str(val)} }}")
+            print(f"          S = {{ {to_str(x_after)}; {to_str(y_after)} }}\n")
+
+    print(f"S = {{ {to_str(x_after)}; {to_str(y_after)} }}")
+    print("θ = { " + ", ".join([f"{k}/{to_str(v)}" for k,v in subst.items()]) + " }")
+    print("(Unified Successfully)")
+    return subst
+
+
+# ---- Example Input ----
+x = parse("p(b, X, f(g(Z)))")
+y = parse("p(Z, f(Y), f(Y))")
+
+unify(x, y)
+
+OUTPUT:
+Question: S = { p(b, X, f(g(Z))); p(Z, f(Y), f(Y)) }
+
+Step 1: subst θ = { Z/b }
+          S = { p(b, X, f(g(b))); p(b, f(Y), f(Y)) }
+
+Step 2: subst θ = { X/f(Y) }
+          S = { p(b, f(Y), f(g(b))); p(b, f(Y), f(Y)) }
+
+Step 3: subst θ = { Y/g(b) }
+          S = { p(b, f(Y), f(g(b))); p(b, f(g(b)), f(g(b))) }
+
+S = { p(b, f(Y), f(g(b))); p(b, f(g(b)), f(g(b))) }
+θ = { Z/b, X/f(Y), Y/g(b) }
+(Unified Successfully)
+{'Z': 'b', 'X': ('f', ['Y']), 'Y': ('g', ['b'])}
