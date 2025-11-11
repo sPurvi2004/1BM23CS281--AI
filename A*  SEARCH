@@ -1,0 +1,224 @@
+MISSPLACED TILES:
+
+import heapq
+goal_state = [[1, 2, 3],
+              [8, 0, 4],
+              [7, 6, 5]]
+goal_positions = {goal_state[i][j]: (i, j) for i in range(3) for j in range(3)}
+def h_misplaced(state):
+    misplaced = 0
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] != 0 and state[i][j] != goal_state[i][j]:
+                misplaced += 1
+    return misplaced
+def state_to_tuple(state):
+    return tuple(tuple(row) for row in state)
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+def get_neighbors(state):
+    neighbors = []
+    x, y = find_blank(state)
+    moves = [(0,1),(0,-1),(1,0),(-1,0)]
+    for dx, dy in moves:
+        nx, ny = x+dx, y+dy
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
+            neighbors.append(new_state)
+    return neighbors
+def a_star_misplaced(start):
+    open_list = []
+    heapq.heappush(open_list, (h_misplaced(start), 0, start, []))
+    visited = set()
+    step = 0
+    while open_list:
+        f, g, state, path = heapq.heappop(open_list)
+        step += 1
+        print(f"\nStep {step}:")
+        for row in state:
+            print(row)
+        print(f"g = {g}, h = {h_misplaced(state)}, f = {f}, OPEN size = {len(open_list)}")
+        if state == goal_state:
+            print("✅ Goal reached!")
+            return path + [state]
+        visited.add(state_to_tuple(state))
+        for neighbor in get_neighbors(state):
+            if state_to_tuple(neighbor) not in visited:
+                g_new = g + 1
+                h_new = h_misplaced(neighbor)
+                f_new = g_new + h_new
+                heapq.heappush(open_list, (f_new, g_new, neighbor, path + [state]))
+    return None
+# Example usage
+start_state = [[2, 8, 3],
+               [1, 6, 4],
+               [7, 0, 5]]
+solution = a_star_misplaced(start_state)
+
+OUTPUT:
+Step 1:
+[2, 8, 3]
+[1, 6, 4]
+[7, 0, 5]
+g = 0, h = 4, f = 4, OPEN size = 0
+
+Step 2:
+[2, 8, 3]
+[1, 0, 4]
+[7, 6, 5]
+g = 1, h = 3, f = 4, OPEN size = 2
+
+Step 3:
+[2, 0, 3]
+[1, 8, 4]
+[7, 6, 5]
+g = 2, h = 3, f = 5, OPEN size = 4
+
+Step 4:
+[2, 8, 3]
+[0, 1, 4]
+[7, 6, 5]
+g = 2, h = 3, f = 5, OPEN size = 5
+
+Step 5:
+[0, 2, 3]
+[1, 8, 4]
+[7, 6, 5]
+g = 3, h = 2, f = 5, OPEN size = 6
+
+Step 6:
+[1, 2, 3]
+[0, 8, 4]
+[7, 6, 5]
+g = 4, h = 1, f = 5, OPEN size = 6
+
+Step 7:
+[1, 2, 3]
+[8, 0, 4]
+[7, 6, 5]
+g = 5, h = 0, f = 5, OPEN size = 7
+✅ Goal reached!
+
+
+MANHATTAN DISTANCE :
+
+import heapq
+
+goal_state = [[1, 2, 3],
+              [8, 0, 4],
+              [7, 6, 5]]
+
+goal_positions = {goal_state[i][j]: (i, j) for i in range(3) for j in range(3)}
+
+def h_manhattan(state):
+    total = 0
+    for i in range(3):
+        for j in range(3):
+            val = state[i][j]
+            if val != 0:
+                gi, gj = goal_positions[val]
+                total += abs(i - gi) + abs(j - gj)
+    return total
+
+def state_to_tuple(state):
+    return tuple(tuple(row) for row in state)
+
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+def get_neighbors(state):
+    neighbors = []
+    x, y = find_blank(state)
+    moves = [(0,1),(0,-1),(1,0),(-1,0)]
+    for dx, dy in moves:
+        nx, ny = x+dx, y+dy
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
+            neighbors.append(new_state)
+    return neighbors
+
+def a_star_manhattan(start):
+    open_list = []
+    heapq.heappush(open_list, (h_manhattan(start), 0, start, []))
+    visited = set()
+    step = 0
+
+    while open_list:
+        f, g, state, path = heapq.heappop(open_list)
+        step += 1
+
+        print(f"\nStep {step}:")
+        for row in state:
+            print(row)
+        print(f"g = {g}, h = {h_manhattan(state)}, f = {f}, OPEN size = {len(open_list)}")
+
+        if state == goal_state:
+            print("✅ Goal reached!")
+            return path + [state]
+
+        visited.add(state_to_tuple(state))
+
+        for neighbor in get_neighbors(state):
+            if state_to_tuple(neighbor) not in visited:
+                g_new = g + 1
+                h_new = h_manhattan(neighbor)
+                f_new = g_new + h_new
+                heapq.heappush(open_list, (f_new, g_new, neighbor, path + [state]))
+    return None
+
+# Example usage
+start_state = [[2, 8, 3],
+               [1, 6, 4],
+               [7, 0, 5]]
+
+solution = a_star_manhattan(start_state)
+
+
+OUTPUT:
+
+OUTPUT:
+
+Step 1:
+[2, 8, 3]
+[1, 6, 4]
+[7, 0, 5]
+g = 0, h = 5, f = 5, OPEN size = 0
+
+Step 2:
+[2, 8, 3]
+[1, 0, 4]
+[7, 6, 5]
+g = 1, h = 4, f = 5, OPEN size = 2
+
+Step 3:
+[2, 0, 3]
+[1, 8, 4]
+[7, 6, 5]
+g = 2, h = 3, f = 5, OPEN size = 4
+
+Step 4:
+[0, 2, 3]
+[1, 8, 4]
+[7, 6, 5]
+g = 3, h = 2, f = 5, OPEN size = 5
+
+Step 5:
+[1, 2, 3]
+[0, 8, 4]
+[7, 6, 5]
+g = 4, h = 1, f = 5, OPEN size = 5
+
+Step 6:
+[1, 2, 3]
+[8, 0, 4]
+[7, 6, 5]
+g = 5, h = 0, f = 5, OPEN size = 6
+✅ Goal reached!
