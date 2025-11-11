@@ -1,0 +1,147 @@
+ Wumpus World Entailment Checker (Single Cell Query)
+
+
+from itertools import product
+
+
+# Evaluate propositional formulas under a given model
+
+def pl_true(expr, model):
+    """Evaluate a propositional logic expression under a given model."""
+    if isinstance(expr, str):  # atomic symbol
+        return model.get(expr, None)
+    op = expr[0]
+    if op == 'not':
+        return not pl_true(expr[1], model)
+    elif op == 'and':
+        return pl_true(expr[1], model) and pl_true(expr[2], model)
+    elif op == 'or':
+        return pl_true(expr[1], model) or pl_true(expr[2], model)
+    elif op == 'imp':  # implication
+        return (not pl_true(expr[1], model)) or pl_true(expr[2], model)
+    elif op == 'iff':  # biconditional
+        return pl_true(expr[1], model) == pl_true(expr[2], model)
+    else:
+        raise ValueError(f"Unknown operator: {op}")
+
+-
+# Check if KB entails query α (True), ¬α (False), or unknown
+
+def entail_status(KB, alpha, symbols):
+    """Return True (entailed), False (negation entailed), or None (unknown)."""
+    entails_alpha = tt_entails(KB, alpha, symbols)
+    entails_not_alpha = tt_entails(KB, ('not', alpha), symbols)
+    if entails_alpha and not entails_not_alpha:
+        return True
+    elif entails_not_alpha and not entails_alpha:
+        return False
+    else:
+        return None
+
+
+# Truth Table Entailment
+
+def tt_entails(KB, alpha, symbols):
+    return check_all(KB, alpha, symbols, {})
+
+def check_all(KB, alpha, symbols, model):
+    if not symbols:
+        if all(pl_true(s, model) for s in KB):
+            return pl_true(alpha, model)
+        else:
+            return True
+    else:
+        P = symbols[0]
+        rest = symbols[1:]
+        model_true = model.copy()
+        model_true[P] = True
+        model_false = model.copy()
+        model_false[P] = False
+        return (check_all(KB, alpha, rest, model_true) and
+                check_all(KB, alpha, rest, model_false))
+
+
+# Main Program (User Input for One Cell)
+
+def main():
+    print("==============================================")
+    print("   Wumpus World Logic Inference (Single Cell)")
+    print("==============================================")
+
+    # Knowledge Base (Initial conditions for standard Wumpus World)
+    KB = [
+        ('not', 'B11'),
+        ('not', 'S11'),
+        ('iff', 'B11', ('or', 'P12', 'P21')),
+        ('iff', 'S11', ('or', 'W12', 'W21')),
+        ('not', 'P12'),
+        ('not', 'P21'),
+        ('not', 'W12'),
+        ('not', 'W21')
+    ]
+
+    symbols = ['B11', 'S11', 'P12', 'P21', 'W12', 'W21', 'P22', 'W22']
+
+    # Ask user which cell to check
+    cell = input("\nEnter the cell coordinates (e.g., 1,2): ").strip()
+    cell = cell.replace("(", "").replace(")", "").replace(" ", "")
+    x, y = cell.split(",")
+    cell_str = x + y  # e.g., "12"
+
+    print(f"\nChecking information for cell ({x},{y})...\n")
+
+    # Define facts to check for this cell
+    facts_to_check = [
+        ('P' + cell_str, "Pit"),
+        ('W' + cell_str, "Wumpus"),
+        ('B' + cell_str, "Breeze"),
+        ('S' + cell_str, "Stench")
+    ]
+
+    for sym, label in facts_to_check:
+        if sym not in symbols:
+            symbols.append(sym)
+        result = entail_status(KB, sym, symbols)
+        if result is True:
+            print(f" There IS a {label} at ({x},{y})")
+        elif result is False:
+            print(f" There is NO {label} at ({x},{y})")
+        else:
+            print(f" UNKNOWN whether there is a {label} at ({x},{y})")
+
+    print("\n==============================================")
+
+# Run
+
+if __name__ == "__main__":
+    main()
+
+
+OUTPUT:
+==============================================
+   Wumpus World Logic Inference (Single Cell)
+==============================================
+
+Enter the cell coordinates : 2,2
+
+Checking information for cell (2,2)...
+
+ UNKNOWN whether there is a Pit at (2,2)
+ UNKNOWN whether there is a Wumpus at (2,2)
+ UNKNOWN whether there is a Breeze at (2,2)
+ UNKNOWN whether there is a Stench at (2,2)
+
+==============================================
+
+==============================================
+   Wumpus World Logic Inference (Single Cell)
+==============================================
+
+Enter the cell coordinates : 1,2
+
+Checking information for cell (1,2)...
+
+ There is NO Pit at (1,2)
+ There is NO Wumpus at (1,2)
+ UNKNOWN whether there is a Breeze at (1,2)
+ UNKNOWN whether there is a Stench at (1,2)
