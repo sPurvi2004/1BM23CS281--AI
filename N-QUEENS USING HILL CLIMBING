@@ -1,0 +1,169 @@
+# simulated_annealing_steps.py
+# Start state: . . . Q / . Q . . / . . Q . / Q . . .
+# This script prints every accepted board (step-by-step).
+import random, math
+
+def calculate_conflicts(state):
+    conflicts = 0
+    n = len(state)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                conflicts += 1
+    return conflicts
+
+def print_board(state):
+    n = len(state)
+    for r in range(n):
+        row = ['.'] * n
+        row[state[r]] = 'Q'
+        print(" ".join(row))
+    print()
+
+def get_neighbor(state):
+    n = len(state)
+    neighbor = state.copy()
+    row = random.randint(0, n - 1)
+    new_col = random.randint(0, n - 1)
+    while new_col == neighbor[row]:
+        new_col = random.randint(0, n - 1)
+    neighbor[row] = new_col
+    return neighbor
+
+def simulated_annealing_from_state(initial_state, max_iter=10000, initial_temp=100, cooling_rate=0.99):
+    random.seed(0)                # fixed seed for reproducible run
+    current = initial_state.copy()
+    current_energy = calculate_conflicts(current)
+    temp = initial_temp
+
+    # print the start board
+    print_board(current)
+
+    for iteration in range(1, max_iter + 1):
+        if current_energy == 0:
+            break
+
+        neighbor = get_neighbor(current)
+        neighbor_energy = calculate_conflicts(neighbor)
+        delta = neighbor_energy - current_energy
+
+        # acceptance rule (Metropolis)
+        if delta < 0 or random.random() < math.exp(-delta / temp):
+            # accepted move -> print the board
+            current = neighbor
+            current_energy = neighbor_energy
+            print_board(current)
+
+        temp *= cooling_rate
+        if temp < 1e-12:
+            break
+
+    return current
+
+# ------------------ run --------------------
+start_state = [3, 1, 2, 0]   # . . . Q / . Q . . / . . Q . / Q . . .
+final = simulated_annealing_from_state(start_state)
+# (program prints every accepted board as it runs)
+
+
+OUTPUT:
+
+. . . Q
+. Q . .
+. . Q .
+Q . . .
+
+. . . Q
+. Q . .
+. . Q .
+. . . Q
+
+. . . Q
+. Q . .
+. . Q .
+. . Q .
+
+. . . Q
+. Q . .
+. . Q .
+. Q . .
+
+. . . Q
+. Q . .
+. Q . .
+. Q . .
+
+. . . Q
+. Q . .
+. . Q .
+. Q . .
+
+Q . . .
+. Q . .
+. . Q .
+. Q . .
+
+Q . . .
+. Q . .
+. . . Q
+. Q . .
+
+. . Q .
+. Q . .
+. . . Q
+. Q . .
+
+. . Q .
+. . . Q
+. . . Q
+. Q . .
+
+. . Q .
+. . . Q
+Q . . .
+. Q . .
+
+Q . . .
+. . . Q
+Q . . .
+. Q . .
+
+Q . . .
+. . . Q
+Q . . .
+Q . . .
+
+Q . . .
+. . . Q
+. Q . .
+Q . . .
+
+Q . . .
+. . . Q
+Q . . .
+Q . . .
+
+Q . . .
+. Q . .
+Q . . .
+Q . . .
+
+Q . . .
+. . . Q
+Q . . .
+Q . . .
+
+. . Q .
+. . . Q
+Q . . .
+Q . . .
+
+. . Q .
+. . . Q
+Q . . .
+. . Q .
+
+. Q . .
+. . . Q
+Q . . .
+. . Q .
