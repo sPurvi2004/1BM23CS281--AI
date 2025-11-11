@@ -1,0 +1,134 @@
+# forward_chain_fol.py
+# Simple forward-chaining engine for Horn-like FOL rules (variable names start with '?').
+
+from itertools import product, chain
+
+# Facts are tuples: e.g. ('American','Robert')
+facts = set([
+    ('American','Robert'),
+    ('Hostile','A'),
+    ('Weapon','m1'),
+    ('Sells','Robert','m1','A'),
+])
+
+# A rule is (head, body) where head and body are tuples with constants or variables (variables start with '?')
+# Example rule:
+# Criminal(?x) :- American(?x), Weapon(?w), Sells(?x,?w,?y), Hostile(?y).
+rules = [
+    ( ('Criminal','?x'),
+      [
+        ('American','?x'),
+        ('Weapon','?w'),
+        ('Sells','?x','?w','?y'),
+        ('Hostile','?y')
+      ]
+    )
+]
+
+def is_variable(term):
+    return isinstance(term, str) and term.startswith('?')
+
+def match_literal_to_fact(lit, fact, subst):
+    """
+    Attempt to extend subst so that lit matches fact.
+    lit and fact are tuples of same length.
+    subst is current dict mapping variables -> constants.
+    Returns new subst dict on success, None on failure.
+    """
+    new_subst = dict(subst)
+    if len(lit) != len(fact):
+        return None
+    for lt, ft in zip(lit, fact):
+        if is_variable(lt):
+            if lt in new_subst:
+                # variable already assigned; must match
+                if new_subst[lt] != ft:
+                    return None
+            else:
+                new_subst[lt] = ft
+        else:
+            # literal position is constant => must equal fact constant
+            if lt != ft:
+                return None
+    return new_subst
+
+def find_substitutions_for_body(body, facts):
+    """
+    Return all substitutions that make every literal in body true w.r.t current facts.
+    """
+    # We'll do backtracking: for the first literal, try every matching fact, extend subst, recurse.
+    substitutions = []
+
+    def backtrack(i, subst):
+        if i == len(body):
+            substitutions.append(subst.copy())
+            return
+        lit = body[i]
+        # try every fact with same arity
+        for fact in facts:
+            if len(fact) != len(lit): 
+                continue
+            new_subst = match_literal_to_fact(lit, fact, subst)
+            if new_subst is not None:
+                backtrack(i+1, new_subst)
+
+    backtrack(0, {})
+    return substitutions
+
+def instantiate(term, subst):
+    """Replace variables in term by subst (if present); return tuple of constants."""
+    return tuple(subst.get(t, t) for t in term)
+
+def forward_chain(facts, rules):
+    facts = set(facts)  # copy
+    inferred = True
+    step = 0
+    # Print initial facts
+    print("Initial facts:")
+    for f in sorted(facts):
+        print(f)
+    print()
+    while True:
+        new_facts = set()
+        for head, body in rules:
+            # find substitutions that satisfy body
+            subs = find_substitutions_for_body(body, facts)
+            for subst in subs:
+                atom = instantiate(head, subst)
+                if atom not in facts:
+                    new_facts.add(atom)
+                    step += 1
+                    print(f"Step {step}: Derived {atom} by applying rule\n  {head} :- {', '.join(map(str,body))}\n  with substitution {subst}\n")
+        if not new_facts:
+            break
+        facts |= new_facts
+    print("Final facts:")
+    for f in sorted(facts):
+        print(f)
+    return facts
+
+if __name__ == "__main__":
+    final_facts = forward_chain(facts, rules)
+    print("\nQuery: Criminal(Robert) ? ->", ('Criminal','Robert') in final_facts)
+
+
+OUPUT:
+
+Initial facts:
+('American', 'Robert')
+('Hostile', 'A')
+('Sells', 'Robert', 'm1', 'A')
+('Weapon', 'm1')
+
+Step 1: Derived ('Criminal', 'Robert') by applying rule
+  ('Criminal', '?x') :- ('American', '?x'), ('Weapon', '?w'), ('Sells', '?x', '?w', '?y'), ('Hostile', '?y')
+  with substitution {'?x': 'Robert', '?w': 'm1', '?y': 'A'}
+
+Final facts:
+('American', 'Robert')
+('Criminal', 'Robert')
+('Hostile', 'A')
+('Sells', 'Robert', 'm1', 'A')
+('Weapon', 'm1')
+
+Query: Criminal(Robert) ? -> True
