@@ -1,0 +1,112 @@
+def negate(predicate):
+    if predicate.startswith("~"):
+        return predicate[1:]
+    return "~" + predicate
+
+def is_complementary(x, y):
+    return x == negate(y) or y == negate(x)
+
+
+def resolve(ci, cj):
+    resolvents = []
+
+    for lit1 in ci:
+        for lit2 in cj:
+            if is_complementary(lit1, lit2):
+                # remove complementary pair
+                new_clause = set(ci)
+                new_clause.remove(lit1)
+                new_clause2 = set(cj)
+                new_clause2.remove(lit2)
+
+                # union both without complements
+                resolvent = new_clause.union(new_clause2)
+                resolvents.append(frozenset(resolvent))
+
+    return resolvents
+
+
+
+def resolution(KB, query):
+    clauses = set(KB)
+
+    neg_query = frozenset([negate(query)])
+    clauses.add(neg_query)
+
+    print("\nInitial Clauses:")
+    for c in clauses:
+        print(c)
+
+    new = set()
+
+    while True:
+        clause_list = list(clauses)
+
+        for i in range(len(clause_list)):
+            for j in range(i+1, len(clause_list)):
+
+                ci, cj = clause_list[i], clause_list[j]
+                resolvents = resolve(ci, cj)
+
+                for r in resolvents:
+                    print(f"\nResolving {ci} and {cj} → {set(r)}")
+
+                    if len(r) == 0:
+                        print("\n Empty Clause Produced → PROVED")
+                        return True
+
+                    new.add(r)
+
+        if new.issubset(clauses):
+            print("\nNo new clauses → Cannot prove.")
+            return False
+
+        clauses = clauses.union(new)
+
+
+
+KB = [
+    frozenset(["Parent(Mary,John)"]),
+    frozenset(["Parent(Adam,Mary)"]),
+
+    # Rule1: Parent(x, John) → Ancestor(x, John)
+    # in CNF: {~Parent(x,John), Ancestor(x,John)}
+    frozenset(["~Parent(x,John)", "Ancestor(x,John)"]),
+
+    # Rule2: Parent(x, y) ∧ Ancestor(y, John) → Ancestor(x, John)
+    # CNF: {~Parent(x,y), ~Ancestor(y,John), Ancestor(x,John)}
+    frozenset(["~Parent(x,y)", "~Ancestor(y,John)", "Ancestor(x,John)"])
+]
+
+query = "Ancestor(Adam,John)"
+
+# Run resolution
+result = resolution(KB, query)
+
+print("\nFinal Result:", result)
+if result:
+    print("\nConclusion: Query is LOGICALLY PROVED by resolution.")
+else:
+    print("\nConclusion: Query CANNOT be proved.")
+
+
+OUTPUT:
+
+Initial Clauses:
+frozenset({'Parent(Mary,John)'})
+frozenset({'Parent(Adam,Mary)'})
+frozenset({'~Parent(x,John)', 'Ancestor(x,John)'})
+frozenset({'~Parent(x,y)', '~Ancestor(y,John)', 'Ancestor(x,John)'})
+frozenset({'~Ancestor(Adam,John)'})
+
+Resolving frozenset({'Parent(Mary,John)'}) and frozenset({'~Parent(x,John)', 'Ancestor(x,John)'})
+→ {'Ancestor(x,John)'}
+
+Resolving frozenset({'Ancestor(x,John)'}) and frozenset({'~Ancestor(Adam,John)'})
+→ {}
+ Empty Clause Produced → PROVED
+
+Final Result: True
+
+Conclusion: Query is LOGICALLY PROVED by resolution.
+
