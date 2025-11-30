@@ -1,0 +1,123 @@
+from copy import deepcopy
+
+
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+
+def generate_children(state):
+    x, y = find_blank(state)
+    moves = {
+        "up": (x - 1, y),
+        "down": (x + 1, y),
+        "left": (x, y - 1),
+        "right": (x, y + 1)
+    }
+
+    children = []
+    for move, (nx, ny) in moves.items():
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            new_state = deepcopy(state)
+            new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
+            children.append(new_state)
+    return children
+
+
+def DLS(state, goal, limit, path, visited):
+    if state == goal:
+        return path
+
+    if limit == 0:
+        return None
+
+    visited.add(tuple(map(tuple, state)))
+
+    for child in generate_children(state):
+        child_t = tuple(map(tuple, child))
+        if child_t not in visited:
+            result = DLS(child, goal, limit - 1, path + [child], visited)
+            if result is not None:
+                return result
+
+    visited.remove(tuple(map(tuple, state)))
+    return None
+
+
+def IDS(initial, goal):
+    depth = 0
+    while True:
+        visited = set()
+        result = DLS(initial, goal, depth, [initial], visited)
+        if result is not None:
+            return result
+        depth += 1
+        if depth > 50:   # safe stop
+            return None
+
+
+initial_state = [
+    [2, 8, 3],
+    [1, 6, 4],
+    [7, 5, 0]
+]
+
+goal_state = [
+    [1, 2, 3],
+    [8, 0, 4],
+    [7, 6, 5]
+]
+
+
+solution = IDS(initial_state, goal_state)
+
+
+if solution:
+    print("Solution Found! Steps =", len(solution) - 1)
+    for i, state in enumerate(solution):
+        print("\nStep", i)
+        for row in state:
+            print(row)
+else:
+    print("No solution exists.")
+
+OUTPUT:
+Solution Found! Steps = 6
+
+Step 0
+[2, 8, 3]
+[1, 6, 4]
+[7, 5, 0]
+
+Step 1
+[2, 8, 3]
+[1, 6, 0]
+[7, 5, 4]
+
+Step 2
+[2, 8, 3]
+[1, 0, 6]
+[7, 5, 4]
+
+Step 3
+[2, 8, 3]
+[0, 1, 6]
+[7, 5, 4]
+
+Step 4
+[0, 8, 3]
+[2, 1, 6]
+[7, 5, 4]
+
+Step 5
+[1, 8, 3]
+[2, 0, 6]
+[7, 5, 4]
+
+Step 6
+[1, 2, 3]
+[8, 0, 4]
+[7, 6, 5]
+
