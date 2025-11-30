@@ -1,0 +1,114 @@
+from copy import deepcopy
+
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+
+
+def generate_children(state):
+    i, j = find_blank(state)
+    children = []
+    
+    moves = {
+        "up":    (i - 1, j),
+        "down":  (i + 1, j),
+        "left":  (i, j - 1),
+        "right": (i, j + 1)
+    }
+    
+    for move, (x, y) in moves.items():
+        if 0 <= x < 3 and 0 <= y < 3:  # valid move
+            new_state = deepcopy(state)
+            new_state[i][j], new_state[x][y] = new_state[x][y], new_state[i][j]
+            children.append(new_state)
+    
+    return children
+
+# -------------------------------
+# DFS for 8 Puzzle
+# -------------------------------
+def dfs_8_puzzle(initial, goal):
+    stack = [(initial, [initial])]
+    visited = set()
+
+    while stack:
+        state, path = stack.pop()
+
+        # convert state into a tuple to hash it
+        state_tuple = tuple(tuple(row) for row in state)
+
+        if state_tuple in visited:
+            continue
+        
+        visited.add(state_tuple)
+
+        # goal found
+        if state == goal:
+            return path
+        
+        # expand children
+        for child in generate_children(state):
+            child_tuple = tuple(tuple(row) for row in child)
+            if child_tuple not in visited:
+                stack.append((child, path + [child]))
+    
+    return None
+
+# -------------------------------
+# INPUT (same as your notebook)
+# -------------------------------
+
+initial_state = [
+    [1, 2, 3],
+    [7, 0, 6],
+    [5, 4, 8]
+]
+
+goal_state = [
+    [1, 2, 3],
+    [7, 8, 6],
+    [5, 4, 0]
+]
+
+
+solution = dfs_8_puzzle(initial_state, goal_state)
+
+
+if solution:
+    print("Solution Found! Steps:", len(solution)-1)
+    for step, state in enumerate(solution):
+        print("\nStep", step)
+        for row in state:
+            print(row)
+else:
+    print("No solution exists.")
+
+OUTPUT:
+Solution Found! Steps: 4
+
+Step 0
+[1, 2, 3]
+[7, 0, 6]
+[5, 4, 8]
+
+Step 1
+[1, 2, 3]
+[7, 4, 6]
+[5, 0, 8]
+
+Step 2
+[1, 2, 3]
+[7, 4, 6]
+[5, 8, 0]
+
+Step 3
+[1, 2, 3]
+[7, 4, 6]
+[5, 8, 0]
+
+Step 4   (GOAL)
+[1, 2, 3]
+[7, 8, 6]
+[5, 4, 0]
