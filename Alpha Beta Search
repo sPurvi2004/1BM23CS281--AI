@@ -1,0 +1,89 @@
+# Structure:
+# Root (MAX)
+#   ├── Left MIN
+#   │      ├── MAX → [10, 9]
+#   │      └── MAX → [14, 18]
+#   └── Right MIN
+#          ├── MAX → [5, 4]
+#          └── MAX → [50, 3]
+
+# We represent this tree as nested Python dicts.
+
+tree = {
+    "type": "MAX",
+    "children": [
+        {
+            "type": "MIN",
+            "children": [
+                {"type": "MAX", "leaves": [10, 9]},
+                {"type": "MAX", "leaves": [14, 18]}
+            ],
+        },
+        {
+            "type": "MIN",
+            "children": [
+                {"type": "MAX", "leaves": [5, 4]},
+                {"type": "MAX", "leaves": [50, 3]},
+            ],
+        },
+    ],
+}
+
+
+def alpha_beta(node, alpha, beta):
+    if "leaves" in node:  # Leaf-level MAX nodes
+        best = float("-inf")
+        for v in node["leaves"]:
+            if v > best:
+                best = v
+            if best >= beta:
+                print(f"    PRUNE in leaf MAX: leaf {v} ≥ beta({beta})")
+                return best
+        return best
+
+    if node["type"] == "MAX":
+        best = float("-inf")
+        for i, child in enumerate(node["children"]):
+            val = alpha_beta(child, alpha, beta)
+            print(f"MAX node updates value: max({best}, {val})")
+            best = max(best, val)
+            if best >= beta:
+                print(f"PRUNE at MAX: value {best} ≥ beta({beta})")
+                return best
+            alpha = max(alpha, best)
+        return best
+
+    if node["type"] == "MIN":
+        best = float("inf")
+        for i, child in enumerate(node["children"]):
+            val = alpha_beta(child, alpha, beta)
+            print(f"MIN node updates value: min({best}, {val})")
+            best = min(best, val)
+            if best <= alpha:
+                print(f"PRUNE at MIN: value {best} ≤ alpha({alpha})")
+                return best
+            beta = min(beta, best)
+        return best
+
+
+# Run alpha-beta on the root
+print("\n--- Running Alpha-Beta Pruning ---\n")
+value = alpha_beta(tree, float("-inf"), float("inf"))
+
+print("\nFinal root value:", value)
+
+
+OUTPUT:
+
+
+--- Running Alpha-Beta Pruning ---
+
+MIN node updates value: min(inf, 10)
+    PRUNE in leaf MAX: leaf 14 ≥ beta(10)
+MIN node updates value: min(10, 14)
+MAX node updates value: max(-inf, 10)
+MIN node updates value: min(inf, 5)
+PRUNE at MIN: value 5 ≤ alpha(10)
+MAX node updates value: max(10, 5)
+
+Final root value: 10
